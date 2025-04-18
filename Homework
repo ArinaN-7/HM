@@ -1,0 +1,132 @@
+import hashlib
+
+class MyDict:
+    def __init__(self):
+        self._keys = []
+        self._values = []
+        self._hashes = []
+
+    def _key_to_hash(self, key):
+        key_str = str(key) if not isinstance(key, str) else key
+        return hashlib.sha256(key_str.encode('utf-8')).hexdigest()
+
+    def __setitem__(self, key, value):
+        new_hash = self._key_to_hash(key)
+        
+        for i, existing_hash in enumerate(self._hashes):
+            if existing_hash == new_hash:
+                self._values[i] = value
+                return
+        
+        self._keys.append(key)
+        self._values.append(value)
+        self._hashes.append(new_hash)
+
+    def __getitem__(self, key):
+        target_hash = self._key_to_hash(key)
+        
+        for i, existing_hash in enumerate(self._hashes):
+            if existing_hash == target_hash:
+                return self._values[i]
+        
+        raise KeyError(f"Key '{key}' not found")
+
+    def __delitem__(self, key):
+        target_hash = self._key_to_hash(key)
+        
+        for i, existing_hash in enumerate(self._hashes):
+            if existing_hash == target_hash:
+                del self._keys[i]
+                del self._values[i]
+                del self._hashes[i]
+                return
+        
+        raise KeyError(f"Key '{key}' not found")
+
+    def __contains__(self, key):
+        try:
+            self[key]
+            return True
+        except KeyError:
+            return False
+
+    def __len__(self):
+        return len(self._values)
+
+    def __repr__(self):
+        items = [f"{k!r}: {v!r}" for k, v in zip(self._keys, self._values)]
+        return "{" + ", ".join(items) + "}"
+
+    def clear(self):
+        self._keys.clear()
+        self._values.clear()
+        self._hashes.clear()
+
+    def copy(self):
+        new_dict = MyDict()
+        new_dict._keys = self._keys.copy()
+        new_dict._values = self._values.copy()
+        new_dict._hashes = self._hashes.copy()
+        return new_dict
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def items(self):
+        return list(zip(self._keys, self._values))
+
+    def keys(self):
+        return self._keys.copy()
+
+    def values(self):
+        return self._values.copy()
+
+    def pop(self, key, default=KeyError):
+        target_hash = self._key_to_hash(key)
+        
+        for i, existing_hash in enumerate(self._hashes):
+            if existing_hash == target_hash:
+                value = self._values[i]
+                del self._keys[i]
+                del self._values[i]
+                del self._hashes[i]
+                return value
+        
+        if default is KeyError:
+            raise KeyError(f"Key '{key}' not found")
+        return default
+
+    def popitem(self):
+        if not self._keys:
+            raise KeyError("popitem(): dictionary is empty")
+        
+        return (self._keys.pop(), self._values.pop())
+
+    def setdefault(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            self[key] = default
+            return default
+
+    def update(self, other=None, **kwargs):
+        if other is not None:
+            if hasattr(other, "items"):
+                for key, value in other.items():
+                    self[key] = value
+            else:
+                for key, value in other:
+                    self[key] = value
+        
+        for key, value in kwargs.items():
+            self[key] = value
+
+    @classmethod
+    def fromkeys(cls, iterable, value=None):
+        new_dict = cls()
+        for key in iterable:
+            new_dict[key] = value
+        return new_dict 
